@@ -86,7 +86,7 @@ func TestCallTracer(t *testing.T) {
 			_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 
 			// Create the tracer, the EVM environment and run it
-			tracer := NewTraceStructLogger(nil)
+			tracer := NewOeTracer(nil)
 
 			evm := vm.NewEVM(blkContext, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
@@ -95,12 +95,17 @@ func TestCallTracer(t *testing.T) {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
 
-			tracer.SetBlockNumber(new(big.Int).SetUint64(uint64(test.Context.Number)))
-			tracer.SetFrom(msg.From())
-			tracer.SetTo(msg.To())
-			tracer.SetValue(*msg.Value())
-			tracer.SetTx(tx.Hash())
-			// fmt.Println(msg.From(), msg.To(), msg.Nonce(), msg.Value(), msg.GasPrice(), msg.Gas(), string(msg.Data()))
+			tracer.SetMessage(
+				new(big.Int).SetUint64(uint64(test.Context.Number)), /* blockNumber */
+				common.Hash{}, /* blockHash */
+				tx.Hash(),
+				0, /* txIndex */
+				msg.From(),
+				msg.To(),
+				*msg.Value(),
+			)
+
+			fmt.Println(msg.From(), msg.To(), msg.Nonce(), msg.Value(), msg.GasPrice(), msg.Gas(), string(msg.Data()))
 			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
 			if _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
