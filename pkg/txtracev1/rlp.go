@@ -26,7 +26,7 @@ import (
 )
 
 type flatTrace struct {
-	// Action fields
+	// TAction fields
 	ActionCallType      *string         `rlp:"nil"`
 	ActionFrom          *common.Address `rlp:"nil"`
 	ActionTo            *common.Address `rlp:"nil"`
@@ -125,7 +125,7 @@ func (at *ActionTrace) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	action := AddressAction{
+	action := TAction{
 		CallType:      ft.ActionCallType,
 		From:          ft.ActionFrom,
 		To:            ft.ActionTo,
@@ -137,7 +137,7 @@ func (at *ActionTrace) DecodeRLP(s *rlp.Stream) error {
 		RefundAddress: ft.ActionRefundAddress,
 		Balance:       (*hexutil.Big)(ft.ActionBalance),
 	}
-	result := &TraceActionResult{
+	result := &TResult{
 		GasUsed: hexutil.Uint64(ft.ResultGasUsed),
 		Code:    ft.ResultCode,
 		Address: ft.ResultAddress,
