@@ -1,4 +1,4 @@
-package txtrace
+package txtracev1
 
 import (
 	"encoding/json"
