@@ -1,7 +1,9 @@
 package txtracev2
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -34,6 +36,22 @@ type callTracerTest struct {
 	Context *callContext     `json:"context"`
 	Input   string           `json:"input"`
 	Result  []RpcActionTrace `json:"result"`
+}
+
+type MemoryStore struct {
+	data map[common.Hash][]byte
+}
+
+func (store *MemoryStore) ReadTxTrace(ctx context.Context, txHash common.Hash) ([]byte, error) {
+	if raw, isExist := store.data[txHash]; isExist {
+		return raw, nil
+	}
+	return nil, errors.New("tx not found")
+}
+
+func (store *MemoryStore) WriteTxTrace(ctx context.Context, txHash common.Hash, trace []byte) error {
+	store.data[txHash] = trace
+	return nil
 }
 
 // Iterates over all the input-output datasets in the tracer test harness and
@@ -84,8 +102,12 @@ func TestCallTracer(t *testing.T) {
 
 			_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 
+			memoryStore := &MemoryStore{
+				data: make(map[common.Hash][]byte),
+			}
+
 			// Create the tracer, the EVM environment and run it
-			tracer := NewOeTracer(nil, common.Hash{}, new(big.Int).SetUint64(uint64(test.Context.Number)), tx.Hash(), 0)
+			tracer := NewOeTracer(memoryStore, common.Hash{}, new(big.Int).SetUint64(uint64(test.Context.Number)), tx.Hash(), 0)
 
 			evm := vm.NewEVM(blkContext, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
@@ -102,6 +124,17 @@ func TestCallTracer(t *testing.T) {
 			if !jsonEqual(res, test.Result) {
 				jsonDiff(t, res, test.Result)
 			}
+
+			tracer.PersistTrace()
+
+			storeRes, err := ReadRpcTxTrace(memoryStore, context.Background(), tx.Hash())
+			if err != nil {
+				t.Logf("failed to read trace: %v", err)
+			}
+			if !jsonEqual(storeRes, test.Result) {
+				jsonDiff(t, storeRes, test.Result)
+			}
+
 		})
 	}
 }
@@ -118,12 +151,12 @@ func jsonEqual(x, y interface{}) bool {
 	xTrace := make([]RpcActionTrace, 0)
 	yTrace := make([]RpcActionTrace, 0)
 	if xj, err := json.Marshal(x); err == nil {
-		_ = json.Unmarshal(xj, xTrace)
+		_ = json.Unmarshal(xj, &xTrace)
 	} else {
 		return false
 	}
 	if yj, err := json.Marshal(y); err == nil {
-		_ = json.Unmarshal(yj, yTrace)
+		_ = json.Unmarshal(yj, &yTrace)
 	} else {
 		return false
 	}

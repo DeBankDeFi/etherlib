@@ -81,12 +81,15 @@ func (it *InternalActionTraces) ToRpcTraces() (traces []RpcActionTrace) {
 			TransactionHash:     it.TransactionHash,
 			TransactionPosition: it.TransactionPosition,
 		}
+		if rpcTrace.TraceAddress == nil {
+			rpcTrace.TraceAddress = make([]uint32, 0)
+		}
 		switch interTrace.Action.CallType {
 		case CallTypeCreate:
 			rpcTrace.TraceType = "create"
 			toRpcTraceCreate(&interTrace, rpcTrace)
 		case CallTypeSuicide:
-			rpcTrace.TraceType = "selfde"
+			rpcTrace.TraceType = "suicide"
 			toRpcTraceSuicide(&interTrace, rpcTrace)
 		default:
 			rpcTrace.TraceType = "call"
@@ -143,6 +146,7 @@ func toRpcTraceCall(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
 func toRpcTraceSuicide(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
 	rpcTrace.Action.Address = interTrace.Action.Address
 	rpcTrace.Action.RefundAddress = interTrace.Action.RefundAddress
+	rpcTrace.Action.Value = nil
 	balance := big.NewInt(0)
 	if interTrace.Action.Balance != nil {
 		balance.Set(interTrace.Action.Balance)
