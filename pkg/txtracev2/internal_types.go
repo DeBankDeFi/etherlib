@@ -53,7 +53,7 @@ type InternalActionTrace struct {
 
 // InternalActions uses for store, simplifies structure to save space while compares with []RpcActionTrace
 type InternalActionTraces struct {
-	Traces              []InternalActionTrace
+	Traces              []*InternalActionTrace
 	BlockHash           common.Hash
 	BlockNumber         *big.Int
 	TransactionHash     common.Hash
@@ -87,13 +87,13 @@ func (it *InternalActionTraces) ToRpcTraces() (traces []RpcActionTrace) {
 		switch interTrace.Action.CallType {
 		case CallTypeCreate:
 			rpcTrace.TraceType = "create"
-			toRpcTraceCreate(&interTrace, rpcTrace)
+			toRpcTraceCreate(interTrace, rpcTrace)
 		case CallTypeSuicide:
 			rpcTrace.TraceType = "suicide"
-			toRpcTraceSuicide(&interTrace, rpcTrace)
+			toRpcTraceSuicide(interTrace, rpcTrace)
 		default:
 			rpcTrace.TraceType = "call"
-			toRpcTraceCall(&interTrace, rpcTrace)
+			toRpcTraceCall(interTrace, rpcTrace)
 		}
 		traces = append(traces, *rpcTrace)
 	}

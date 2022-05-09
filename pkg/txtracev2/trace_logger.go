@@ -20,7 +20,6 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 type OeTracer struct {
 	store        Store
-	traces       []*InternalActionTrace
 	traceStack   []*InternalActionTrace
 	outPutTraces InternalActionTraces
 	env          *vm.EVM
@@ -60,11 +59,11 @@ func (ot *OeTracer) createEnter(from common.Address, address common.Address, inp
 		internalTrace.TraceAddress = append(internalTrace.TraceAddress, ot.traceStack[len(ot.traceStack)-1].Subtraces)
 		ot.traceStack[len(ot.traceStack)-1].Subtraces++
 	}
-	ot.traces = append(ot.traces, internalTrace)
+	ot.outPutTraces.Traces = append(ot.outPutTraces.Traces, internalTrace)
 	ot.traceStack = append(ot.traceStack, internalTrace)
 }
 
-// captureExit handles CREATE/CREATE2 exit
+// captureExit handles CREATE/CREATE2 op exit
 func (ot *OeTracer) createExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
 	if err != nil {
 		internalTrace.Error = err.Error()
@@ -100,7 +99,7 @@ func (ot *OeTracer) callEnter(callType uint8, from common.Address, to common.Add
 		internalTrace.TraceAddress = append(internalTrace.TraceAddress, ot.traceStack[len(ot.traceStack)-1].Subtraces)
 		ot.traceStack[len(ot.traceStack)-1].Subtraces++
 	}
-	ot.traces = append(ot.traces, internalTrace)
+	ot.outPutTraces.Traces = append(ot.outPutTraces.Traces, internalTrace)
 	ot.traceStack = append(ot.traceStack, internalTrace)
 }
 
@@ -136,7 +135,7 @@ func (ot *OeTracer) suicideEnter(address common.Address, refundAddress common.Ad
 		internalTrace.TraceAddress = append(internalTrace.TraceAddress, ot.traceStack[len(ot.traceStack)-1].Subtraces)
 		ot.traceStack[len(ot.traceStack)-1].Subtraces++
 	}
-	ot.traces = append(ot.traces, internalTrace)
+	ot.outPutTraces.Traces = append(ot.outPutTraces.Traces, internalTrace)
 	ot.traceStack = append(ot.traceStack, internalTrace)
 }
 
@@ -148,7 +147,7 @@ func (ot *OeTracer) suicideExit(internalTrace *InternalActionTrace, output []byt
 	}
 }
 
-// CaptureStart handle top call/create start
+// CaptureStart handles top call/create start
 func (ot *OeTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	if create {
 		ot.createEnter(from, to, input, gas, value)
@@ -158,7 +157,7 @@ func (ot *OeTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Add
 	ot.env = env
 }
 
-// CaptureEnd handle top call/create end
+// CaptureEnd handles top call/create end
 func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 	internalTrace := ot.traceStack[len(ot.traceStack)-1]
 	ot.traceStack = ot.traceStack[:len(ot.traceStack)-1]
@@ -167,13 +166,9 @@ func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, e
 	} else {
 		ot.callExit(internalTrace, output, gasUsed, err)
 	}
-	// finish
-	for _, trace := range ot.traces {
-		ot.outPutTraces.Traces = append(ot.outPutTraces.Traces, *trace)
-	}
 }
 
-// CaptureEnter handle sub call/create/suide start
+// CaptureEnter handles sub call/create/suide start
 func (ot *OeTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	switch typ {
 	case vm.CREATE, vm.CREATE2:
@@ -191,7 +186,7 @@ func (ot *OeTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.A
 	}
 }
 
-// CaptureExit handle sub call/create/suide end
+// CaptureExit handles sub call/create/suide end
 func (ot *OeTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 	internalTrace := ot.traceStack[len(ot.traceStack)-1]
 	ot.traceStack = ot.traceStack[:len(ot.traceStack)-1]
