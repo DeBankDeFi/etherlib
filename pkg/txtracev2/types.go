@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 const (
@@ -51,8 +52,8 @@ type InternalActionTrace struct {
 	Subtraces    uint32
 }
 
-// InternalActions uses for store, simplifies structure to save space while compares with []RpcActionTrace
-type InternalActionTraces struct {
+// InternalActions uses for store, simplifies structure to save space while compares with ActionTraceList
+type InternalActionTraceList struct {
 	Traces              []*InternalActionTrace
 	BlockHash           common.Hash
 	BlockNumber         *big.Int
@@ -60,15 +61,15 @@ type InternalActionTraces struct {
 	TransactionPosition uint64
 }
 
-// ToRpcTraces convert InternalActionTraces to RpcActionTraces
-func (it *InternalActionTraces) ToRpcTraces() (traces []RpcActionTrace) {
+// ToTraces convert InternalActionTraceLList to ActionTraceList
+func (it *InternalActionTraceList) ToTraces() (traces ActionTraceList) {
 	for _, interTrace := range it.Traces {
 		value := big.NewInt(0)
 		if interTrace.Action.Value != nil {
 			value.Set(interTrace.Action.Value)
 		}
-		rpcTrace := &RpcActionTrace{
-			Action: RpcAction{
+		rpcTrace := &ActionTrace{
+			Action: Action{
 				Gas:   hexutil.Uint64(interTrace.Action.Gas),
 				Value: (*hexutil.Big)(value),
 				Input: interTrace.Action.Input,
@@ -87,36 +88,36 @@ func (it *InternalActionTraces) ToRpcTraces() (traces []RpcActionTrace) {
 		switch interTrace.Action.CallType {
 		case CallTypeCreate:
 			rpcTrace.TraceType = "create"
-			toRpcTraceCreate(interTrace, rpcTrace)
+			toTraceCreate(interTrace, rpcTrace)
 		case CallTypeSuicide:
 			rpcTrace.TraceType = "suicide"
-			toRpcTraceSuicide(interTrace, rpcTrace)
+			toTraceSuicide(interTrace, rpcTrace)
 		default:
 			rpcTrace.TraceType = "call"
-			toRpcTraceCall(interTrace, rpcTrace)
+			toTraceCall(interTrace, rpcTrace)
 		}
 		traces = append(traces, *rpcTrace)
 	}
 	return
 }
 
-// toRpcTraceCreate handles crate sub action
-func toRpcTraceCreate(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
+// toTraceCreate handles crate sub action
+func toTraceCreate(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
 	rpcTrace.Action.From = interTrace.Action.From
 	if interTrace.Error != "" {
 		rpcTrace.Error = interTrace.Error
 		return
 	}
 	code := hexutil.Bytes(interTrace.Result.Code)
-	rpcTrace.Result = &RpcActionResult{
+	rpcTrace.Result = &ActionResult{
 		GasUsed: hexutil.Uint64(interTrace.Result.GasUsed),
 		Code:    &code,
 		Address: interTrace.Result.Address,
 	}
 }
 
-// toRpcTraceCall handles call sub action
-func toRpcTraceCall(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
+// toTraceCall handles call sub action
+func toTraceCall(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
 	switch interTrace.Action.CallType {
 	case CallTypeCall:
 		rpcTrace.Action.CallType = &Call
@@ -136,14 +137,14 @@ func toRpcTraceCall(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
 		return
 	}
 	output := hexutil.Bytes(interTrace.Result.Output)
-	rpcTrace.Result = &RpcActionResult{
+	rpcTrace.Result = &ActionResult{
 		GasUsed: hexutil.Uint64(interTrace.Result.GasUsed),
 		Output:  &output,
 	}
 }
 
-// toRpcTraceSuicide handles selfdestruct sub action
-func toRpcTraceSuicide(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace) {
+// toTraceSuicide handles selfdestruct sub action
+func toTraceSuicide(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
 	rpcTrace.Action.Address = interTrace.Action.Address
 	rpcTrace.Action.RefundAddress = interTrace.Action.RefundAddress
 	rpcTrace.Action.Value = nil
@@ -152,4 +153,49 @@ func toRpcTraceSuicide(interTrace *InternalActionTrace, rpcTrace *RpcActionTrace
 		balance.Set(interTrace.Action.Balance)
 	}
 	rpcTrace.Action.Balance = (*hexutil.Big)(balance)
+}
+
+type Action struct {
+	CallType      *string         `json:"callType,omitempty"` // for CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL
+	From          *common.Address `json:"from"`
+	To            *common.Address `json:"to,omitempty"`
+	Value         *hexutil.Big    `json:"value"`
+	Gas           hexutil.Uint64  `json:"gas"`
+	Init          hexutil.Bytes   `json:"init,omitempty"`          // for CREATE
+	Input         hexutil.Bytes   `json:"input,omitempty"`         // for CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL
+	Address       *common.Address `json:"address,omitempty"`       // for SELFDESTRUCT
+	RefundAddress *common.Address `json:"refundAddress,omitempty"` // for SELFDESTRUCT
+	Balance       *hexutil.Big    `json:"balance,omitempty"`       // for SELFDESTRUCT
+}
+
+type ActionResult struct {
+	GasUsed hexutil.Uint64  `json:"gasUsed"`
+	Output  *hexutil.Bytes  `json:"output,omitempty"`  // for CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL
+	Code    *hexutil.Bytes  `json:"code,omitempty"`    // for CREATE
+	Address *common.Address `json:"address,omitempty"` // for CREATE
+}
+
+// ActionTrace use for jsonrpc
+type ActionTrace struct {
+	Action              Action        `json:"action"`
+	BlockHash           common.Hash   `json:"blockHash"`
+	BlockNumber         *big.Int      `json:"blockNumber"`
+	Result              *ActionResult `json:"result,omitempty"`
+	Error               string        `json:"error,omitempty"`
+	Subtraces           uint32        `json:"subtraces"`
+	TraceAddress        []uint32      `json:"traceAddress"`
+	TransactionHash     common.Hash   `json:"transactionHash"`
+	TransactionPosition uint64        `json:"transactionPosition"`
+	TraceType           string        `json:"type"`
+}
+
+type ActionTraceList []ActionTrace
+
+func (rl *ActionTraceList) DecodeRLP(s *rlp.Stream) error {
+	internalActionTraces := InternalActionTraceList{}
+	if err := s.Decode(&internalActionTraces); err != nil {
+		return err
+	}
+	*rl = append(*rl, internalActionTraces.ToTraces()...)
+	return nil
 }

@@ -18,7 +18,7 @@ type Store interface {
 }
 
 // ReadRpcTxTrace reads internal tx-trace from underlying database and decodes it to rpc-tx-trace.
-func ReadRpcTxTrace(store Store, ctx context.Context, txHash common.Hash) ([]RpcActionTrace, error) {
+func ReadRpcTxTrace(store Store, ctx context.Context, txHash common.Hash) (ActionTraceList, error) {
 	raw, err := store.ReadTxTrace(ctx, txHash)
 	if err != nil {
 		return nil, err
@@ -26,10 +26,10 @@ func ReadRpcTxTrace(store Store, ctx context.Context, txHash common.Hash) ([]Rpc
 	if bytes.Equal(raw, []byte{}) { // empty response
 		return nil, fmt.Errorf("trace result of tx {%#v} not found in tracedb", txHash)
 	}
-	interTxs := new(InternalActionTraces)
-	err = rlp.DecodeBytes(raw, interTxs)
+	txs := ActionTraceList{}
+	err = rlp.DecodeBytes(raw, &txs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode rlp traces: %v", err)
 	}
-	return interTxs.ToRpcTraces(), nil
+	return txs, nil
 }

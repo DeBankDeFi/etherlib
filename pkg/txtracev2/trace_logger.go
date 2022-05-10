@@ -21,14 +21,14 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 type OeTracer struct {
 	store        Store
 	traceStack   []*InternalActionTrace
-	outPutTraces InternalActionTraces
+	outPutTraces InternalActionTraceList
 	env          *vm.EVM
 }
 
 func NewOeTracer(db Store, blockHash common.Hash, blockNumber *big.Int, transactionHash common.Hash, transactionPosition uint64) *OeTracer {
 	return &OeTracer{
 		store: db,
-		outPutTraces: InternalActionTraces{
+		outPutTraces: InternalActionTraceList{
 			BlockHash:           blockHash,
 			BlockNumber:         blockNumber,
 			TransactionHash:     transactionHash,
@@ -338,21 +338,21 @@ func (ot *OeTracer) checkContractNotExist(addr common.Address) error {
 func (ot *OeTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
-// GetInternalTraces return Inter ActionTraces after evm runtime completed, then PersistTrace will store it to db
-// If you want to return traces to clent,  call .ToRpcTraces to convert []RpcActionTrace or call GetRpcTraces directly
-func (ot *OeTracer) GetInternalTraces() *InternalActionTraces {
+// getInternalTraces return Inter ActionTraces after evm runtime completed, then PersistTrace will store it to db
+// If you want to return traces to clent,  call .ToRpcTraces to convert ActionTraceList or call GetTraces directly
+func (ot *OeTracer) getInternalTraces() *InternalActionTraceList {
 	return &ot.outPutTraces
 }
 
-// GetRpcTraces return []RpcActionTrace for jsonrpc call
-func (ot *OeTracer) GetRpcTraces() []RpcActionTrace {
-	return ot.outPutTraces.ToRpcTraces()
+// GetTraces return ActionTraceList for jsonrpc call
+func (ot *OeTracer) GetTraces() ActionTraceList {
+	return ot.outPutTraces.ToTraces()
 }
 
 // PersistTrace save traced tx result to underlying k-v store.
 func (ot *OeTracer) PersistTrace() {
 	if ot.store != nil {
-		tracesBytes, err := rlp.EncodeToBytes(ot.GetInternalTraces())
+		tracesBytes, err := rlp.EncodeToBytes(ot.getInternalTraces())
 		if err != nil {
 			log.Error("Failed to encode tx trace", "txHash", ot.outPutTraces.TransactionHash.String(), "err", err.Error())
 			return

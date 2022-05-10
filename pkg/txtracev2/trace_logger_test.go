@@ -32,10 +32,10 @@ type callContext struct {
 
 // callTracerTest defines a single test to check the call tracer against.
 type callTracerTest struct {
-	Genesis *core.Genesis    `json:"genesis"`
-	Context *callContext     `json:"context"`
-	Input   string           `json:"input"`
-	Result  []RpcActionTrace `json:"result"`
+	Genesis *core.Genesis `json:"genesis"`
+	Context *callContext  `json:"context"`
+	Input   string        `json:"input"`
+	Result  []ActionTrace `json:"result"`
 }
 
 type MemoryStore struct {
@@ -120,7 +120,7 @@ func TestCallTracer(t *testing.T) {
 			if _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}
-			res := tracer.GetRpcTraces()
+			res := tracer.GetTraces()
 			if !jsonEqual(res, test.Result) {
 				jsonDiff(t, res, test.Result)
 			}
@@ -148,8 +148,8 @@ func jsonDiff(t *testing.T, x, y interface{}) {
 // jsonEqual is similar to reflect.DeepEqual, but does a 'bounce' via json prior to
 // comparison
 func jsonEqual(x, y interface{}) bool {
-	xTrace := make([]RpcActionTrace, 0)
-	yTrace := make([]RpcActionTrace, 0)
+	xTrace := make(ActionTraceList, 0)
+	yTrace := make(ActionTraceList, 0)
 	if xj, err := json.Marshal(x); err == nil {
 		_ = json.Unmarshal(xj, &xTrace)
 	} else {
