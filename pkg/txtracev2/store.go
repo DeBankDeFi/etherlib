@@ -18,7 +18,7 @@ type Store interface {
 }
 
 // ReadRpcTxTrace reads internal tx-trace from underlying database and decodes it to rpc-tx-trace.
-func ReadRpcTxTrace(store Store, ctx context.Context, txHash common.Hash) (ActionTraceList, error) {
+func ReadRpcTxTrace(ctx context.Context, store Store, txHash common.Hash) (ActionTraceList, error) {
 	raw, err := store.ReadTxTrace(ctx, txHash)
 	if err != nil {
 		return nil, err

@@ -127,7 +127,7 @@ func TestCallTracer(t *testing.T) {
 
 			tracer.PersistTrace()
 
-			storeRes, err := ReadRpcTxTrace(memoryStore, context.Background(), tx.Hash())
+			storeRes, err := ReadRpcTxTrace(context.Background(), memoryStore, tx.Hash())
 			if err != nil {
 				t.Logf("failed to read trace: %v", err)
 			}
