@@ -72,8 +72,6 @@ func (it *InternalActionTraceList) ToTraces() (traces ActionTraceList) {
 			Action: Action{
 				Gas:   hexutil.Uint64(interTrace.Action.Gas),
 				Value: (*hexutil.Big)(value),
-				Input: interTrace.Action.Input,
-				Init:  interTrace.Action.Init,
 			},
 			BlockHash:           it.BlockHash,
 			BlockNumber:         it.BlockNumber,
@@ -103,6 +101,9 @@ func (it *InternalActionTraceList) ToTraces() (traces ActionTraceList) {
 
 // toTraceCreate handles crate sub action
 func toTraceCreate(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
+	init := hexutil.Bytes(interTrace.Action.Init)
+	rpcTrace.Action.Init = &init
+	rpcTrace.Action.Input = nil
 	rpcTrace.Action.From = interTrace.Action.From
 	if interTrace.Error != "" {
 		rpcTrace.Error = interTrace.Error
@@ -118,6 +119,9 @@ func toTraceCreate(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
 
 // toTraceCall handles call sub action
 func toTraceCall(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
+	input := hexutil.Bytes(interTrace.Action.Input)
+	rpcTrace.Action.Input = &input
+	rpcTrace.Action.Init = nil
 	switch interTrace.Action.CallType {
 	case CallTypeCall:
 		rpcTrace.Action.CallType = &Call
@@ -145,6 +149,9 @@ func toTraceCall(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
 
 // toTraceSuicide handles selfdestruct sub action
 func toTraceSuicide(interTrace *InternalActionTrace, rpcTrace *ActionTrace) {
+	// suicide has no init/input
+	rpcTrace.Action.Init = nil
+	rpcTrace.Action.Input = nil
 	rpcTrace.Action.Address = interTrace.Action.Address
 	rpcTrace.Action.RefundAddress = interTrace.Action.RefundAddress
 	rpcTrace.Action.Value = nil
@@ -161,8 +168,8 @@ type Action struct {
 	To            *common.Address `json:"to,omitempty"`
 	Value         *hexutil.Big    `json:"value"`
 	Gas           hexutil.Uint64  `json:"gas"`
-	Init          hexutil.Bytes   `json:"init,omitempty"`          // for CREATE
-	Input         hexutil.Bytes   `json:"input,omitempty"`         // for CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL
+	Init          *hexutil.Bytes  `json:"init,omitempty"`          // for CREATE
+	Input         *hexutil.Bytes  `json:"input,omitempty"`         // for CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL
 	Address       *common.Address `json:"address,omitempty"`       // for SELFDESTRUCT
 	RefundAddress *common.Address `json:"refundAddress,omitempty"` // for SELFDESTRUCT
 	Balance       *hexutil.Big    `json:"balance,omitempty"`       // for SELFDESTRUCT
