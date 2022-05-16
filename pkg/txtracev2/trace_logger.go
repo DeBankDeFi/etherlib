@@ -2,7 +2,6 @@ package txtracev2
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
@@ -219,10 +218,6 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
-		if err = ot.checkNoRecursion(depth); err != nil {
-			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
-			return
-		}
 		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
@@ -245,10 +240,6 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		if !value.IsZero() {
 			bigVal = value.ToBig()
 		}
-		if err = ot.checkNoRecursion(depth); err != nil {
-			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
-			return
-		}
 		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
@@ -263,10 +254,6 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		}
 	case vm.DELEGATECALL, vm.STATICCALL:
 		if err != nil {
-			ot.callPreProcessFailed(op, scope, gas, nil, err)
-			return
-		}
-		if err = ot.checkNoRecursion(depth); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, nil, err)
 			return
 		}
@@ -298,14 +285,6 @@ func (ot *OeTracer) callPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, g
 	}
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address(addr.Bytes20()), input, gas, value)
 	ot.CaptureExit(nil, 0, err)
-}
-
-// checkNoRecursion check if evm is support recursion
-func (ot *OeTracer) checkNoRecursion(depth int) error {
-	if ot.env.Config.NoRecursion && depth > 0 {
-		return errors.New("evm not support recursion")
-	}
-	return nil
 }
 
 // checkDepthAboveLitmit check if the depth is above the limit
