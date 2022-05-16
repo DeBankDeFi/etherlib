@@ -65,7 +65,9 @@ func (ot *OeTracer) createEnter(from common.Address, address common.Address, inp
 
 // captureExit handles CREATE/CREATE2 op exit
 func (ot *OeTracer) createExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	} else {
@@ -105,7 +107,9 @@ func (ot *OeTracer) callEnter(callType uint8, from common.Address, to common.Add
 
 // callExit handles CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL op exit
 func (ot *OeTracer) callExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	} else {
@@ -141,7 +145,9 @@ func (ot *OeTracer) suicideEnter(address common.Address, refundAddress common.Ad
 
 // suicideExit handles SELFDESTRUCT op exit
 func (ot *OeTracer) suicideExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	}
@@ -268,6 +274,8 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.callPreProcessFailed(op, scope, gas, nil, err)
 			return
 		}
+	case vm.REVERT:
+		ot.traceStack[len(ot.traceStack)-1].Error = "execution reverted"
 	}
 }
 
