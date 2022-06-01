@@ -2,7 +2,6 @@ package txtracev2
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
@@ -65,7 +64,9 @@ func (ot *OeTracer) createEnter(from common.Address, address common.Address, inp
 
 // captureExit handles CREATE/CREATE2 op exit
 func (ot *OeTracer) createExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	} else {
@@ -105,7 +106,9 @@ func (ot *OeTracer) callEnter(callType uint8, from common.Address, to common.Add
 
 // callExit handles CALL, CALL_CODE, DELEGATE_CALL, STATIC_CALL op exit
 func (ot *OeTracer) callExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	} else {
@@ -141,7 +144,9 @@ func (ot *OeTracer) suicideEnter(address common.Address, refundAddress common.Ad
 
 // suicideExit handles SELFDESTRUCT op exit
 func (ot *OeTracer) suicideExit(internalTrace *InternalActionTrace, output []byte, gasUsed uint64, err error) {
-	if err != nil {
+	if internalTrace.Error != "" {
+		internalTrace.Result = nil
+	} else if err != nil {
 		internalTrace.Error = err.Error()
 		internalTrace.Result = nil
 	}
@@ -213,10 +218,6 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
-		if err = ot.checkNoRecursion(depth); err != nil {
-			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
-			return
-		}
 		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
@@ -239,10 +240,6 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		if !value.IsZero() {
 			bigVal = value.ToBig()
 		}
-		if err = ot.checkNoRecursion(depth); err != nil {
-			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
-			return
-		}
 		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
@@ -260,14 +257,12 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.callPreProcessFailed(op, scope, gas, nil, err)
 			return
 		}
-		if err = ot.checkNoRecursion(depth); err != nil {
-			ot.callPreProcessFailed(op, scope, gas, nil, err)
-			return
-		}
 		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, nil, err)
 			return
 		}
+	case vm.REVERT:
+		ot.traceStack[len(ot.traceStack)-1].Error = "execution reverted"
 	}
 }
 
@@ -290,14 +285,6 @@ func (ot *OeTracer) callPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, g
 	}
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address(addr.Bytes20()), input, gas, value)
 	ot.CaptureExit(nil, 0, err)
-}
-
-// checkNoRecursion check if evm is support recursion
-func (ot *OeTracer) checkNoRecursion(depth int) error {
-	if ot.env.Config.NoRecursion && depth > 0 {
-		return errors.New("evm not support recursion")
-	}
-	return nil
 }
 
 // checkDepthAboveLitmit check if the depth is above the limit
@@ -336,6 +323,14 @@ func (ot *OeTracer) checkContractNotExist(addr common.Address) error {
 
 // CaptureFault do nothing
 func (ot *OeTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+}
+
+func (ot *OeTracer) CaptureTxStart(gasLimit uint64) {
+
+}
+
+func (ot *OeTracer) CaptureTxEnd(restGas uint64) {
+
 }
 
 // getInternalTraces return Inter ActionTraces after evm runtime completed, then PersistTrace will store it to db

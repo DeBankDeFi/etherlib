@@ -6,9 +6,9 @@ Ethereum lib for internal use.
 Requirements
 ------------
 
-Go >= 1.16.0
+Go >= 1.17.0
 
-`github.com/ethereum/go-ethereum` >= 1.10 for version 2
+`github.com/ethereum/go-ethereum` = v1.10.18 for version 2
 
 Packages
 ------------

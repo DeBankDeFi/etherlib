@@ -298,6 +298,14 @@ func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, e
 func (ot *OeTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
+func (ot *OeTracer) CaptureTxStart(gasLimit uint64) {
+
+}
+
+func (ot *OeTracer) CaptureTxEnd(restGas uint64) {
+
+}
+
 // Reset function to be able to reuse logger
 func (ot *OeTracer) reset() {
 	ot.to = nil
