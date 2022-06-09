@@ -249,11 +249,11 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		if !value.IsZero() {
 			bigVal = value.ToBig()
 		}
-		if err = ot.checkDepthAboveLitmit(depth); err != nil {
+		if err != nil {
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
-		if err != nil {
+		if err = ot.checkDepthAboveLitmit(depth); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
