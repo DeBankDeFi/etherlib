@@ -11,11 +11,20 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/holiman/uint256"
 )
 
 var _ vm.EVMLogger = (*OeTracer)(nil)
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
+
+// stackPeek returns object from stack at given position from end of stack
+func stackPeek(stack *vm.Stack, pos int) *uint256.Int {
+	if len(stack.Data()) <= pos || pos < 0 {
+		return uint256.NewInt(0)
+	}
+	return stack.Back(pos)
+}
 
 type OeTracer struct {
 	store        Store
@@ -209,7 +218,7 @@ func (ot *OeTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	switch op {
 	case vm.CREATE, vm.CREATE2:
-		value := scope.Stack.Back(0)
+		value := stackPeek(scope.Stack, 0)
 		bigVal := big.NewInt(0)
 		if !value.IsZero() {
 			bigVal = value.ToBig()
@@ -235,7 +244,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			return
 		}
 	case vm.CALL, vm.CALLCODE:
-		value := scope.Stack.Back(2)
+		value := stackPeek(scope.Stack, 2)
 		bigVal := big.NewInt(0)
 		if !value.IsZero() {
 			bigVal = value.ToBig()
@@ -267,7 +276,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 }
 
 func (ot *OeTracer) createPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, gas uint64, value *big.Int, err error) {
-	offset, size := scope.Stack.Back(1), scope.Stack.Back(2)
+	offset, size := stackPeek(scope.Stack, 1), stackPeek(scope.Stack, 2)
 	input := scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address{}, input, gas, value)
 	ot.CaptureExit(nil, 0, err)
@@ -275,12 +284,12 @@ func (ot *OeTracer) createPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext,
 
 func (ot *OeTracer) callPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, gas uint64, value *big.Int, err error) {
 	var input []byte
-	addr := scope.Stack.Back(1)
+	addr := stackPeek(scope.Stack, 1)
 	if op == vm.CALL || op == vm.CALLCODE {
-		offset, size := scope.Stack.Back(3), scope.Stack.Back(4)
+		offset, size := stackPeek(scope.Stack, 3), stackPeek(scope.Stack, 4)
 		input = scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
 	} else {
-		offset, size := scope.Stack.Back(2), scope.Stack.Back(3)
+		offset, size := stackPeek(scope.Stack, 2), stackPeek(scope.Stack, 3)
 		input = scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
 	}
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address(addr.Bytes20()), input, gas, value)
