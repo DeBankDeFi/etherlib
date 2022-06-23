@@ -168,7 +168,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 	}
 
 	// We only care about system opcodes, faster if we pre-check once.
-	if !(op&0xf0 == 0xf0) && op != 0x0 {
+	if !(op&0xf0 == 0xf0) && op != 0x0 && op != vm.SSTORE {
 		return
 	}
 
