@@ -33,8 +33,8 @@ import (
 var _ vm.EVMLogger = (*OeTracer)(nil)
 
 type Diff struct {
-	BeforeValue *common.Hash
-	AfterValue  *common.Hash
+	BeforeValue *common.Hash `json:"before"`
+	AfterValue  *common.Hash `json:"after"`
 }
 
 type AccountDiff map[common.Hash]Diff
