@@ -8,7 +8,7 @@ Requirements
 
 Go >= 1.17.0
 
-`github.com/ethereum/go-ethereum` = v1.10.18 for version 2
+`github.com/ethereum/go-ethereum` = v1.10.19
 
 Packages
 ------------
