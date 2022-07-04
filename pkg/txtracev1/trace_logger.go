@@ -32,6 +32,15 @@ import (
 
 var _ vm.EVMLogger = (*OeTracer)(nil)
 
+type Diff struct {
+	BeforeValue *common.Hash `json:"before"`
+	AfterValue  *common.Hash `json:"after"`
+}
+
+type AccountDiff map[common.Hash]Diff
+
+type StateDiff map[common.Address]AccountDiff
+
 // OeTracer OpenEthereum-style tracer
 type OeTracer struct {
 	store       Store
@@ -53,13 +62,16 @@ type OeTracer struct {
 	reverted     bool
 	output       []byte
 	err          error
+	stateDiff    StateDiff
+	env          *vm.EVM
 }
 
 // NewOeTracer creates new instance of trace creator with underlying database.
 func NewOeTracer(db Store) *OeTracer {
 	ot := OeTracer{
-		store: db,
-		stack: make([]*big.Int, 30),
+		store:     db,
+		stack:     make([]*big.Int, 30),
+		stateDiff: make(StateDiff),
 	}
 	return &ot
 }
@@ -90,6 +102,7 @@ func memorySlice(memory []byte, offset, size int64) []byte {
 
 // CaptureStart implements the tracer interface to initialize the tracing operation.
 func (ot *OeTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+	ot.env = env
 	// Create main trace holder
 	tracesHolder := CallTrace{
 		Actions: make([]ActionTrace, 0),
@@ -155,7 +168,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 	}
 
 	// We only care about system opcodes, faster if we pre-check once.
-	if !(op&0xf0 == 0xf0) && op != 0x0 {
+	if !(op&0xf0 == 0xf0) && op != 0x0 && op != vm.SSTORE {
 		return
 	}
 
@@ -271,6 +284,25 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		traceAction.Balance = (*hexutil.Big)(big.NewInt(0))
 		trace.Action = *traceAction
 		fromTrace.childTraces = append(fromTrace.childTraces, trace)
+	case vm.SSTORE:
+		stackLen := len(stack.Data())
+		if stackLen >= 2 {
+			accountAddress := contract.Address()
+			if ot.stateDiff[accountAddress] == nil {
+				ot.stateDiff[accountAddress] = make(AccountDiff)
+			}
+			afterValue := common.Hash(stack.Data()[stackLen-2].Bytes32())
+			indexAddress := common.Hash(stack.Data()[stackLen-1].Bytes32())
+			if diff, ok := ot.stateDiff[accountAddress][indexAddress]; !ok {
+				beforeValue := ot.env.StateDB.GetState(contract.Address(), indexAddress)
+				ot.stateDiff[accountAddress][indexAddress] = Diff{
+					BeforeValue: &beforeValue,
+					AfterValue:  &afterValue,
+				}
+			} else {
+				diff.AfterValue = &afterValue
+			}
+		}
 	}
 }
 
@@ -418,6 +450,10 @@ func (ot *OeTracer) GetResult() *[]ActionTrace {
 	}
 	empty := make([]ActionTrace, 0)
 	return &empty
+}
+
+func (ot *OeTracer) GetStateDiff() StateDiff {
+	return ot.stateDiff
 }
 
 // CallTrace is struct for holding tracing results.
