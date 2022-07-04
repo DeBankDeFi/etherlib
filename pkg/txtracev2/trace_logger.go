@@ -26,6 +26,21 @@ func stackPeek(stack *vm.Stack, pos int) *uint256.Int {
 	return stack.Back(pos)
 }
 
+func memorySlice(memory []byte, offset, size uint64) []byte {
+	if size == 0 {
+		return []byte{}
+	}
+	if offset+size < offset {
+		log.Warn("Tracer accessed out of bound memory", "offset", offset, "size", size)
+		return nil
+	}
+	if len(memory) < int(offset+size) {
+		log.Warn("Tracer accessed out of bound memory", "available", len(memory), "offset", offset, "size", size)
+		return nil
+	}
+	return memory[offset : offset+size]
+}
+
 type OeTracer struct {
 	store        Store
 	traceStack   []*InternalActionTrace
@@ -277,7 +292,11 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 
 func (ot *OeTracer) createPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, gas uint64, value *big.Int, err error) {
 	offset, size := stackPeek(scope.Stack, 1), stackPeek(scope.Stack, 2)
-	input := scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
+	var input []byte
+	if size.Uint64() > 0 {
+		input = make([]byte, size.Uint64())
+		copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
+	}
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address{}, input, gas, value)
 	ot.CaptureExit(nil, 0, err)
 }
@@ -287,10 +306,17 @@ func (ot *OeTracer) callPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, g
 	addr := stackPeek(scope.Stack, 1)
 	if op == vm.CALL || op == vm.CALLCODE {
 		offset, size := stackPeek(scope.Stack, 3), stackPeek(scope.Stack, 4)
-		input = scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
+		if size.Uint64() > 0 {
+			input = make([]byte, size.Uint64())
+			copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
+		}
+
 	} else {
 		offset, size := stackPeek(scope.Stack, 2), stackPeek(scope.Stack, 3)
-		input = scope.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
+		if size.Uint64() > 0 {
+			input = make([]byte, size.Uint64())
+			copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
+		}
 	}
 	ot.CaptureEnter(op, scope.Contract.Address(), common.Address(addr.Bytes20()), input, gas, value)
 	ot.CaptureExit(nil, 0, err)
