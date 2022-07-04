@@ -18,6 +18,15 @@ var _ vm.EVMLogger = (*OeTracer)(nil)
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
+type Diff struct {
+	BeforeValue *common.Hash `json:"before"`
+	AfterValue  *common.Hash `json:"after"`
+}
+
+type AccountDiff map[common.Hash]Diff
+
+type StateDiff map[common.Address]AccountDiff
+
 // stackPeek returns object from stack at given position from end of stack
 func stackPeek(stack *vm.Stack, pos int) *uint256.Int {
 	if len(stack.Data()) <= pos || pos < 0 {
@@ -46,6 +55,7 @@ type OeTracer struct {
 	traceStack   []*InternalActionTrace
 	outPutTraces InternalActionTraceList
 	env          *vm.EVM
+	stateDiff    StateDiff
 }
 
 func NewOeTracer(db Store, blockHash common.Hash, blockNumber *big.Int, transactionHash common.Hash, transactionPosition uint64) *OeTracer {
@@ -57,6 +67,7 @@ func NewOeTracer(db Store, blockHash common.Hash, blockNumber *big.Int, transact
 			TransactionHash:     transactionHash,
 			TransactionPosition: transactionPosition,
 		},
+		stateDiff: make(StateDiff),
 	}
 }
 
@@ -287,6 +298,25 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		}
 	case vm.REVERT:
 		ot.traceStack[len(ot.traceStack)-1].Error = "execution reverted"
+	case vm.SSTORE:
+		stackLen := len(scope.Stack.Data())
+		if stackLen >= 2 {
+			accountAddress := scope.Contract.Address()
+			if ot.stateDiff[accountAddress] == nil {
+				ot.stateDiff[accountAddress] = make(AccountDiff)
+			}
+			afterValue := common.Hash(scope.Stack.Data()[stackLen-2].Bytes32())
+			indexAddress := common.Hash(scope.Stack.Data()[stackLen-1].Bytes32())
+			if diff, ok := ot.stateDiff[accountAddress][indexAddress]; !ok {
+				beforeValue := ot.env.StateDB.GetState(accountAddress, indexAddress)
+				ot.stateDiff[accountAddress][indexAddress] = Diff{
+					BeforeValue: &beforeValue,
+					AfterValue:  &afterValue,
+				}
+			} else {
+				diff.AfterValue = &afterValue
+			}
+		}
 	}
 }
 
@@ -377,6 +407,11 @@ func (ot *OeTracer) getInternalTraces() *InternalActionTraceList {
 // GetTraces return ActionTraceList for jsonrpc call
 func (ot *OeTracer) GetTraces() ActionTraceList {
 	return ot.outPutTraces.ToTraces()
+}
+
+// GetStateDiff return state diff for jsonrpc call
+func (ot *OeTracer) GetStateDiff() StateDiff {
+	return ot.stateDiff
 }
 
 // PersistTrace save traced tx result to underlying k-v store.
