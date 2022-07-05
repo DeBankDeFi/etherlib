@@ -286,7 +286,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		fromTrace.childTraces = append(fromTrace.childTraces, trace)
 	case vm.SSTORE:
 		stackLen := len(stack.Data())
-		if stackLen >= 2 {
+		if stackLen >= 2 && ot.store == nil {
 			accountAddress := contract.Address()
 			if ot.stateDiff[accountAddress] == nil {
 				ot.stateDiff[accountAddress] = make(AccountDiff)
