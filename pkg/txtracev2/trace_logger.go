@@ -300,7 +300,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		ot.traceStack[len(ot.traceStack)-1].Error = "execution reverted"
 	case vm.SSTORE:
 		stackLen := len(scope.Stack.Data())
-		if stackLen >= 2 {
+		if stackLen >= 2 && ot.store == nil {
 			accountAddress := scope.Contract.Address()
 			if ot.stateDiff[accountAddress] == nil {
 				ot.stateDiff[accountAddress] = make(AccountDiff)
