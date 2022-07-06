@@ -19,6 +19,9 @@ type Store interface {
 
 // ReadRpcTxTrace reads internal tx-trace from underlying database and decodes it to rpc-tx-trace.
 func ReadRpcTxTrace(ctx context.Context, store Store, txHash common.Hash) (ActionTraceList, error) {
+	if store == nil {
+		return nil, fmt.Errorf("trace store cannot be empty")
+	}
 	raw, err := store.ReadTxTrace(ctx, txHash)
 	if err != nil {
 		return nil, err
