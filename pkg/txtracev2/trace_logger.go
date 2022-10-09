@@ -14,6 +14,12 @@ import (
 	"github.com/holiman/uint256"
 )
 
+const (
+	// This is the target size for the packs of transactions or announcements. A
+	// pack can get larger than this if a single transactions exceeds this size.
+	maxTxPacketSize = 100 * 1024
+)
+
 var _ vm.EVMLogger = (*OeTracer)(nil)
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
@@ -323,7 +329,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 func (ot *OeTracer) createPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, gas uint64, value *big.Int, err error) {
 	offset, size := stackPeek(scope.Stack, 1), stackPeek(scope.Stack, 2)
 	var input []byte
-	if size.Uint64() > 0 {
+	if size.Uint64() > 0 && size.Uint64() < maxTxPacketSize {
 		input = make([]byte, size.Uint64())
 		copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
 	}
@@ -336,14 +342,14 @@ func (ot *OeTracer) callPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, g
 	addr := stackPeek(scope.Stack, 1)
 	if op == vm.CALL || op == vm.CALLCODE {
 		offset, size := stackPeek(scope.Stack, 3), stackPeek(scope.Stack, 4)
-		if size.Uint64() > 0 {
+		if size.Uint64() > 0 && size.Uint64() < maxTxPacketSize {
 			input = make([]byte, size.Uint64())
 			copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
 		}
 
 	} else {
 		offset, size := stackPeek(scope.Stack, 2), stackPeek(scope.Stack, 3)
-		if size.Uint64() > 0 {
+		if size.Uint64() > 0 && size.Uint64() < maxTxPacketSize {
 			input = make([]byte, size.Uint64())
 			copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
 		}
