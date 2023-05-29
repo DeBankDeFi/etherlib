@@ -31,6 +31,12 @@ import (
 
 var _ vm.EVMLogger = (*OeTracer)(nil)
 
+const (
+	// This is the target size for the packs of transactions or announcements. A
+	// pack can get larger than this if a single transactions exceeds this size.
+	maxTxPacketSize = 100 * 1024
+)
+
 type Diff struct {
 	BeforeValue *common.Hash `json:"before"`
 	AfterValue  *common.Hash `json:"after"`
@@ -217,7 +223,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			// only CALL and CALLCODE need `value` field
 			value = stackPeek(stack.Data(), 2)
 		}
-		if inSize > 0 {
+		if inSize > 0 && inSize < maxTxPacketSize {
 			input = make([]byte, inSize)
 			copy(input, memorySlice(memory.Data(), inOffset, inSize))
 		}
