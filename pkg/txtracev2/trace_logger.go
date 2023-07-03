@@ -2,6 +2,7 @@ package txtracev2
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"time"
 
@@ -20,7 +21,7 @@ const (
 	maxTxPacketSize = 100 * 1024
 )
 
-var _ vm.EVMLogger = (*OeTracer)(nil)
+var _ vm.Tracer = (*OeTracer)(nil)
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
@@ -247,7 +248,7 @@ func (ot *OeTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 }
 
 // CaptureState handles some pre-processing errors, CaptureEnter and CaptureExit will not be called on this case
-func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
+func (ot *OeTracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	switch op {
 	case vm.CREATE, vm.CREATE2:
 		value := stackPeek(scope.Stack, 0)
@@ -378,7 +379,7 @@ func (ot *OeTracer) checkCanTransfer(addr common.Address, value *big.Int) error 
 func (ot *OeTracer) checkNonceMatch(addr common.Address) error {
 	nonce := ot.env.StateDB.GetNonce(addr)
 	if nonce+1 < nonce {
-		return vm.ErrNonceUintOverflow
+		return errors.New("nonce uint64 overflow")
 	}
 	return nil
 }
@@ -393,7 +394,7 @@ func (ot *OeTracer) checkContractNotExist(addr common.Address) error {
 }
 
 // CaptureFault do nothing
-func (ot *OeTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+func (ot *OeTracer) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
 func (ot *OeTracer) CaptureTxStart(gasLimit uint64) {
