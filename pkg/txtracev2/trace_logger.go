@@ -35,7 +35,7 @@ type StateDiff map[common.Address]AccountDiff
 
 // stackPeek returns object from stack at given position from end of stack
 func stackPeek(stack *vm.Stack, pos int) *uint256.Int {
-	if len(stack.Data()) <= pos || pos < 0 {
+	if len(stack.Data) <= pos || pos < 0 {
 		return uint256.NewInt(0)
 	}
 	return stack.Back(pos)
@@ -305,14 +305,14 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 	case vm.REVERT:
 		ot.traceStack[len(ot.traceStack)-1].Error = "execution reverted"
 	case vm.SSTORE:
-		stackLen := len(scope.Stack.Data())
+		stackLen := len(scope.Stack.Data)
 		if stackLen >= 2 && ot.store == nil {
 			accountAddress := scope.Contract.Address()
 			if ot.stateDiff[accountAddress] == nil {
 				ot.stateDiff[accountAddress] = make(AccountDiff)
 			}
-			afterValue := common.Hash(scope.Stack.Data()[stackLen-2].Bytes32())
-			indexAddress := common.Hash(scope.Stack.Data()[stackLen-1].Bytes32())
+			afterValue := common.Hash(scope.Stack.Data[stackLen-2].Bytes32())
+			indexAddress := common.Hash(scope.Stack.Data[stackLen-1].Bytes32())
 			if diff, ok := ot.stateDiff[accountAddress][indexAddress]; !ok {
 				beforeValue := ot.env.StateDB.GetState(accountAddress, indexAddress)
 				ot.stateDiff[accountAddress][indexAddress] = Diff{

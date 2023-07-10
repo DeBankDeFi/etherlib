@@ -162,8 +162,8 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 	if lastState(ot.state).level == depth {
 		result := ot.traceHolder.Stack[len(ot.traceHolder.Stack)-1].Result
 		if lastState(ot.state).create && result != nil {
-			if len(stack.Data()) > 0 {
-				addr := common.BytesToAddress(stackPeek(stack.Data(), 0).Bytes())
+			if len(stack.Data) > 0 {
+				addr := common.BytesToAddress(stackPeek(stack.Data, 0).Bytes())
 				result.Address = &addr
 				result.GasUsed = hexutil.Uint64(gas)
 			}
@@ -185,8 +185,8 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		fromTrace := ot.traceHolder.Stack[len(ot.traceHolder.Stack)-1]
 
 		// Get input data from memory
-		offset := stackPeek(stack.Data(), 1).Int64()
-		inputSize := stackPeek(stack.Data(), 2).Int64()
+		offset := stackPeek(stack.Data, 1).Int64()
+		inputSize := stackPeek(stack.Data, 2).Int64()
 		var input []byte
 		if inputSize > 0 {
 			input = make([]byte, inputSize)
@@ -212,17 +212,17 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		)
 
 		if vm.DELEGATECALL == op || vm.STATICCALL == op {
-			inOffset = stackPeek(stack.Data(), 2).Int64()
-			inSize = stackPeek(stack.Data(), 3).Int64()
-			retOffset = stackPeek(stack.Data(), 4).Uint64()
-			retSize = stackPeek(stack.Data(), 5).Uint64()
+			inOffset = stackPeek(stack.Data, 2).Int64()
+			inSize = stackPeek(stack.Data, 3).Int64()
+			retOffset = stackPeek(stack.Data, 4).Uint64()
+			retSize = stackPeek(stack.Data, 5).Uint64()
 		} else {
-			inOffset = stackPeek(stack.Data(), 3).Int64()
-			inSize = stackPeek(stack.Data(), 4).Int64()
-			retOffset = stackPeek(stack.Data(), 5).Uint64()
-			retSize = stackPeek(stack.Data(), 6).Uint64()
+			inOffset = stackPeek(stack.Data, 3).Int64()
+			inSize = stackPeek(stack.Data, 4).Int64()
+			retOffset = stackPeek(stack.Data, 5).Uint64()
+			retSize = stackPeek(stack.Data, 6).Uint64()
 			// only CALL and CALLCODE need `value` field
-			value = stackPeek(stack.Data(), 2)
+			value = stackPeek(stack.Data, 2)
 		}
 		if inSize > 0 && inSize < maxTxPacketSize {
 			input = make([]byte, inSize)
@@ -233,7 +233,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		// create new trace
 		trace := NewActionTraceFromTrace(fromTrace, CALL, ot.traceAddress)
 		from := contract.Address()
-		addr := common.BytesToAddress(stackPeek(stack.Data(), 1).Bytes())
+		addr := common.BytesToAddress(stackPeek(stack.Data, 1).Bytes())
 		callType := strings.ToLower(op.String())
 		traceAction := NewTAction(&from, &addr, gas, input, hexutil.Big(*value), &callType)
 		trace.Action = *traceAction
@@ -252,8 +252,8 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			var data []byte
 
 			if vm.STOP != op {
-				offset := stackPeek(stack.Data(), 0).Int64()
-				size := stackPeek(stack.Data(), 1).Int64()
+				offset := stackPeek(stack.Data, 0).Int64()
+				size := stackPeek(stack.Data, 1).Int64()
 				if size > 0 {
 					data = make([]byte, size)
 					copy(data, memorySlice(memory.Data(), offset, size))
@@ -284,21 +284,21 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		traceAction := NewTAction(nil, nil, 0, nil, action.Value, nil)
 		traceAction.Address = &from
 		// set refund values
-		refundAddress := common.BytesToAddress(stackPeek(stack.Data(), 0).Bytes())
+		refundAddress := common.BytesToAddress(stackPeek(stack.Data, 0).Bytes())
 		traceAction.RefundAddress = &refundAddress
 		// Add `balance` field for convenient usage, set to 0x0
 		traceAction.Balance = (*hexutil.Big)(big.NewInt(0))
 		trace.Action = *traceAction
 		fromTrace.childTraces = append(fromTrace.childTraces, trace)
 	case vm.SSTORE:
-		stackLen := len(stack.Data())
+		stackLen := len(stack.Data)
 		if stackLen >= 2 && ot.store == nil {
 			accountAddress := contract.Address()
 			if ot.stateDiff[accountAddress] == nil {
 				ot.stateDiff[accountAddress] = make(AccountDiff)
 			}
-			afterValue := common.Hash(stack.Data()[stackLen-2].Bytes32())
-			indexAddress := common.Hash(stack.Data()[stackLen-1].Bytes32())
+			afterValue := common.Hash(stack.Data[stackLen-2].Bytes32())
+			indexAddress := common.Hash(stack.Data[stackLen-1].Bytes32())
 			if diff, ok := ot.stateDiff[accountAddress][indexAddress]; !ok {
 				beforeValue := ot.env.StateDB.GetState(contract.Address(), indexAddress)
 				ot.stateDiff[accountAddress][indexAddress] = Diff{

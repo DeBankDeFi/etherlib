@@ -1,6 +1,6 @@
 module github.com/DeBankDeFi/etherlib
 
-go 1.17
+go 1.20
 
 require (
 	github.com/ethereum/go-ethereum v1.10.26
@@ -33,3 +33,6 @@ require (
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
+
+// use Evmos geth fork
+replace github.com/ethereum/go-ethereum => github.com/evmos/go-ethereum v1.10.26-evmos-rc2
