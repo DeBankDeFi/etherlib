@@ -343,6 +343,12 @@ func (ot *OeTracer) CaptureTxEnd(restGas uint64) {
 
 }
 
+// CaptureSystemTxEnd bsc vm.EVMLogger exclusive
+// https://github.com/bnb-chain/bsc/commit/a0cb4d0377b36c143dc7f974387f416d51de3597
+func (ot *OeTracer) CaptureSystemTxEnd(intrinsicGas uint64) {
+	ot.gasUsed -= intrinsicGas
+}
+
 // Reset function to be able to reuse logger
 func (ot *OeTracer) reset() {
 	ot.to = nil
