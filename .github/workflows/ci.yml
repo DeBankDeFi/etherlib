@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   lint:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux]
 
     steps:
       - name: Install Go
