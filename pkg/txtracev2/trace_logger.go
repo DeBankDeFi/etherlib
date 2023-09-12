@@ -3,6 +3,7 @@ package txtracev2
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -203,7 +204,7 @@ func (ot *OeTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Add
 }
 
 // CaptureEnd handles top call/create end
-func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
+func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 	internalTrace := ot.traceStack[len(ot.traceStack)-1]
 	ot.traceStack = ot.traceStack[:len(ot.traceStack)-1]
 	if internalTrace.Action.CallType == CallTypeCreate {
