@@ -187,7 +187,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 		offset := stackPeek(stack.Data(), 1).Int64()
 		inputSize := stackPeek(stack.Data(), 2).Int64()
 		var input []byte
-		if inputSize > 0 {
+		if inputSize > 0 && inputSize < maxTxPacketSize {
 			input = make([]byte, inputSize)
 			copy(input, memorySlice(memory.Data(), offset, inputSize))
 		}
