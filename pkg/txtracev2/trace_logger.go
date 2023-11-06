@@ -328,7 +328,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 func (ot *OeTracer) createPreProcessFailed(op vm.OpCode, scope *vm.ScopeContext, gas uint64, value *big.Int, err error) {
 	offset, size := stackPeek(scope.Stack, 1), stackPeek(scope.Stack, 2)
 	var input []byte
-	if size.Uint64() > 0 && size.Uint64() < maxTxPacketSize {
+	if size.Uint64() > 0 && size.Uint64() < maxTxPacketSize && offset.Uint64() < uint64(scope.Memory.Len()) {
 		input = make([]byte, size.Uint64())
 		copy(input, memorySlice(scope.Memory.Data(), offset.Uint64(), size.Uint64()))
 	}
