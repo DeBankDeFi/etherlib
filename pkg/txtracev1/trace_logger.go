@@ -429,8 +429,15 @@ func (ot *OeTracer) Finalize() {
 func (ot *OeTracer) PersistTrace() {
 	if ot.traceHolder == nil {
 		ot.traceHolder = &CallTrace{}
-		ot.traceHolder.AddTrace(GetErrorTrace(ot.blockHash, ot.blockNumber, ot.to, ot.tx, ot.gasUsed, ot.err))
-
+		trace := GetErrorTrace(ot.blockHash, ot.blockNumber, ot.to, ot.tx, ot.gasUsed, ot.err)
+		ot.traceHolder.AddTrace(trace)
+		if ot.store != nil && trace.TraceType == "empty" {
+			traces, _ := ot.store.ReadTxTrace(context.Background(), ot.tx)
+			if len(traces) > 0 {
+				log.Info("Tx trace already exists", "txHash", ot.tx.String())
+				return
+			}
+		}
 	}
 
 	if ot.store != nil {
