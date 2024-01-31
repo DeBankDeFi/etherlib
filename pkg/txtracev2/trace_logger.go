@@ -367,7 +367,7 @@ func (ot *OeTracer) checkDepthAboveLitmit(depth int) error {
 
 // checkCanTransfer check if the balance is enough to transfer
 func (ot *OeTracer) checkCanTransfer(addr common.Address, value *big.Int) error {
-	if value.Sign() != 0 && !ot.env.Context.CanTransfer(ot.env.StateDB, addr, value) {
+	if value.Sign() != 0 && !ot.env.Context.CanTransfer(ot.env.StateDB, addr, uint256.NewInt(value.Uint64())) {
 		return vm.ErrInsufficientBalance
 	}
 	return nil
