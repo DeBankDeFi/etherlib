@@ -3,7 +3,6 @@ package txtracev2
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -204,7 +203,7 @@ func (ot *OeTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Add
 }
 
 // CaptureEnd handles top call/create end
-func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
+func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	internalTrace := ot.traceStack[len(ot.traceStack)-1]
 	ot.traceStack = ot.traceStack[:len(ot.traceStack)-1]
 	if internalTrace.Action.CallType == CallTypeCreate {
@@ -263,7 +262,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
-		if err = ot.checkCanTransfer(scope.Contract.Address(), bigVal); err != nil {
+		if err = ot.checkCanTransfer(scope.Contract.Address(), value); err != nil {
 			ot.createPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
@@ -289,7 +288,7 @@ func (ot *OeTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scop
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
-		if err = ot.checkCanTransfer(scope.Contract.Address(), bigVal); err != nil {
+		if err = ot.checkCanTransfer(scope.Contract.Address(), value); err != nil {
 			ot.callPreProcessFailed(op, scope, gas, bigVal, err)
 			return
 		}
@@ -367,7 +366,7 @@ func (ot *OeTracer) checkDepthAboveLitmit(depth int) error {
 }
 
 // checkCanTransfer check if the balance is enough to transfer
-func (ot *OeTracer) checkCanTransfer(addr common.Address, value *big.Int) error {
+func (ot *OeTracer) checkCanTransfer(addr common.Address, value *uint256.Int) error {
 	if value.Sign() != 0 && !ot.env.Context.CanTransfer(ot.env.StateDB, addr, value) {
 		return vm.ErrInsufficientBalance
 	}

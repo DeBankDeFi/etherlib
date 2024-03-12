@@ -20,7 +20,6 @@ import (
 	"context"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -318,7 +317,7 @@ func (ot *OeTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.A
 func (ot *OeTracer) CaptureExit(output []byte, gasUsed uint64, err error) {}
 
 // CaptureEnd is called after the call complete and finalize the tracing.
-func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
+func (ot *OeTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	log.Debug("OeTracer CaptureEND", "txHash", ot.tx.String(), "gasUsed", gasUsed)
 	if gasUsed > 0 {
 		if ot.traceHolder.Actions[0].Result != nil {
