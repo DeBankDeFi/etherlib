@@ -403,6 +403,9 @@ func (ot *OeTracer) CaptureTxEnd(restGas uint64) {
 
 }
 
+func (ot *OeTracer) CaptureStateAfter(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
+}
+
 // getInternalTraces return Inter ActionTraces after evm runtime completed, then PersistTrace will store it to db
 // If you want to return traces to clent,  call .ToRpcTraces to convert ActionTraceList or call GetTraces directly
 func (ot *OeTracer) getInternalTraces() *InternalActionTraceList {
