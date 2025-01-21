@@ -29,11 +29,11 @@ type suggestedGasFees struct {
 
 // PreExecAPI provides pre exec info for rpc
 type GasFeeAPI struct {
-	e *eth.Ethereum
+	b *eth.EthAPIBackend
 }
 
-func NewGasFeeAPI(e *eth.Ethereum) *GasFeeAPI {
-	return &GasFeeAPI{e: e}
+func NewGasFeeAPI(b *eth.EthAPIBackend) *GasFeeAPI {
+	return &GasFeeAPI{b: b}
 }
 
 func (api *GasFeeAPI) SuggestedGasFees(ctx context.Context, baseBlock *rpc.BlockNumber) (*suggestedGasFees, error) {
@@ -55,7 +55,7 @@ func (api *GasFeeAPI) SuggestedGasFees(ctx context.Context, baseBlock *rpc.Block
 		baseBlock = new(rpc.BlockNumber)
 		*baseBlock = rpc.LatestBlockNumber
 	}
-	oldest, rewards, baseFees, gasUsedRatios, _, _, err := api.e.APIBackend.FeeHistory(ctx, uint64(blocks), *baseBlock, rewardPercentiles)
+	oldest, rewards, baseFees, gasUsedRatios, _, _, err := api.b.FeeHistory(ctx, uint64(blocks), *baseBlock, rewardPercentiles)
 	if err != nil {
 		return nil, err
 	}
