@@ -4,9 +4,8 @@
 
 若新链与现有某条链的实现一直, 可以直接复用现有实现, 但是在实现顶部一定要添加对应链的 build tag. 这将作为后续查询某个实现已被用于哪些链的依据, 防止修改某个实现意外影响其它链.
 
-比如, op 的 gas fee 预估逻辑也适用于 base, 则 `op.go` 实现文件顶部一定要同时包含 op, base 两个 build tag.
+比如, op 的 gas fee 预估逻辑也适用于 base, 则 `op.go` 实现文件顶部一定要同时包含 op base 两个 build tag, 且关系为或.
 
 ```
-//go:build op,base
-// +build op,base
+//go:build op || base
 ```

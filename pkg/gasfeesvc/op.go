@@ -1,4 +1,3 @@
-//go:build op,base
-// +build op,base
+//go:build op || base
 
 package gasfeesvc
