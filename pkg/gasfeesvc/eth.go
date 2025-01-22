@@ -1,3 +1,6 @@
+//go:build eth
+// +build eth
+
 package gasfeesvc
 
 import (
