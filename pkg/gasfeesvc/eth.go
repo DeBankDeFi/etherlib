@@ -6,17 +6,18 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gonum/stat"
 )
 
-type estimatedGasFee struct {
+type FeeHistory func(ctx context.Context, blocks uint64, lastBlock *rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, error)
+
+type EstimatedGasFee struct {
 	MaxPriorityFeePerGas float64 `json:"maxPriorityFeePerGas"`
 	MaxFeePerGas         float64 `json:"maxFeePerGas"`
 }
 
-type suggestedGasFees struct {
+type SuggestedGasFees struct {
 	BaseBlock                  int64                       `json:"baseBlock"`
 	NextBaseFee                float64                     `json:"nextBaseFee"`
 	GasUsedRatio               []float64                   `json:"gasUsedRatio"`
@@ -24,20 +25,10 @@ type suggestedGasFees struct {
 	HistoricalRewards          []float64                   `json:"historicalRewards,omitempty"`
 	RegulatedHistoricalRewards []float64                   `json:"regulatedHistoricalRewards,omitempty"`
 	StdDevThreshold            float64                     `json:"stdDevThreshold,omitempty"`
-	EstimatedGasFees           map[string]*estimatedGasFee `json:"estimatedGasFees"`
+	EstimatedGasFees           map[string]*EstimatedGasFee `json:"estimatedGasFees"`
 }
 
-// PreExecAPI provides pre exec info for rpc
-type GasFeeAPI struct {
-	b *eth.EthAPIBackend
-}
-
-func NewGasFeeAPI(b *eth.EthAPIBackend) *GasFeeAPI {
-	return &GasFeeAPI{b: b}
-}
-
-func (api *GasFeeAPI) SuggestedGasFees(ctx context.Context, baseBlock *rpc.BlockNumber) (*suggestedGasFees, error) {
-	// TODO make the following configurable
+func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory FeeHistory) (*SuggestedGasFees, error) {
 	// query the past 10 blocks
 	blocks := 10
 	stdDevThreshold := 1.0
@@ -51,11 +42,11 @@ func (api *GasFeeAPI) SuggestedGasFees(ctx context.Context, baseBlock *rpc.Block
 		rewardPercentiles = append(rewardPercentiles, float64(i))
 	}
 
-	if baseBlock == nil {
-		baseBlock = new(rpc.BlockNumber)
-		*baseBlock = rpc.LatestBlockNumber
+	if lastBlock == nil {
+		lastBlock = new(rpc.BlockNumber)
+		*lastBlock = rpc.LatestBlockNumber
 	}
-	oldest, rewards, baseFees, gasUsedRatios, _, _, err := api.b.FeeHistory(ctx, uint64(blocks), *baseBlock, rewardPercentiles)
+	oldest, rewards, baseFees, gasUsedRatios, err := feeHistory(ctx, uint64(blocks), *lastBlock, rewardPercentiles)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,6 @@
 module github.com/DeBankDeFi/etherlib
 
-go 1.17
+go 1.22
 
 require (
 	github.com/ethereum/go-ethereum v1.13.14
