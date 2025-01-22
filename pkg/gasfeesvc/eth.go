@@ -46,7 +46,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 		lastBlock = new(rpc.BlockNumber)
 		*lastBlock = rpc.LatestBlockNumber
 	}
-	oldest, rewards, baseFees, gasUsedRatios, err := feeHistory(ctx, uint64(blocks), *lastBlock, rewardPercentiles)
+	oldest, rewards, baseFees, gasUsedRatios, err := feeHistory(ctx, uint64(blocks), lastBlock, rewardPercentiles)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +54,11 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	// pre process the original data from the Oracle
 	// 1. convert the original data unit "wei" to "gwei"
 	// 2. remove the exceptional rewards that deviate too much from the mean
-	results := &suggestedGasFees{
+	results := &SuggestedGasFees{
 		BaseBlock:        oldest.Int64() + int64(blocks) - 1,
 		GasUsedRatio:     gasUsedRatios,
 		StdDevThreshold:  stdDevThreshold,
-		EstimatedGasFees: make(map[string]*estimatedGasFee, 3),
+		EstimatedGasFees: make(map[string]*EstimatedGasFee, 3),
 	}
 	for _, baseFee := range baseFees {
 		if bf, accuracy := new(big.Float).SetInt(baseFee).Float64(); accuracy == 0 {
@@ -92,7 +92,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 		idx := int(percentile * float64(len(regulated)))
 		tip := regulated[idx]
 
-		results.EstimatedGasFees[level] = &estimatedGasFee{
+		results.EstimatedGasFees[level] = &EstimatedGasFee{
 			MaxPriorityFeePerGas: tip,
 			MaxFeePerGas:         results.NextBaseFee*baseFeeRatio + tip,
 		}
