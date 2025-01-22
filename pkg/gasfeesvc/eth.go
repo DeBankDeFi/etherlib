@@ -15,22 +15,6 @@ import (
 
 type FeeHistory func(ctx context.Context, blocks uint64, lastBlock *rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error)
 
-type EstimatedGasFee struct {
-	MaxPriorityFeePerGas float64 `json:"maxPriorityFeePerGas"`
-	MaxFeePerGas         float64 `json:"maxFeePerGas"`
-}
-
-type SuggestedGasFees struct {
-	BaseBlock                  int64                       `json:"baseBlock"`
-	NextBaseFee                float64                     `json:"nextBaseFee"`
-	GasUsedRatio               []float64                   `json:"gasUsedRatio"`
-	HistoricalBaseFees         []float64                   `json:"historicalBaseFees,omitempty"`
-	HistoricalRewards          []float64                   `json:"historicalRewards,omitempty"`
-	RegulatedHistoricalRewards []float64                   `json:"regulatedHistoricalRewards,omitempty"`
-	StdDevThreshold            float64                     `json:"stdDevThreshold,omitempty"`
-	EstimatedGasFees           map[string]*EstimatedGasFee `json:"estimatedGasFees"`
-}
-
 func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory FeeHistory) (*SuggestedGasFees, error) {
 	// query the past 10 blocks
 	blocks := 10
