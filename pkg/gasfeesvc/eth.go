@@ -10,7 +10,7 @@ import (
 	"github.com/gonum/stat"
 )
 
-type FeeHistory func(ctx context.Context, blocks uint64, lastBlock *rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, error)
+type FeeHistory func(ctx context.Context, blocks uint64, lastBlock *rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error)
 
 type EstimatedGasFee struct {
 	MaxPriorityFeePerGas float64 `json:"maxPriorityFeePerGas"`
