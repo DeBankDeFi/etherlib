@@ -19,7 +19,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	// query the past 30 blocks (1 minute)
 	blocks := 30
 	stdDevThreshold := 1.0
-	baseFeeIncreateRatio := []float64{1.0, 1.45, 2.35} // metamask is: 1, 1.43, 2.3
+	baseFeeIncreateRatio := []float64{2.0, 4.0, 10.0} // metamask is: 2, 4, 10
 	tipFeePercentiles := []float64{0.1, 0.5, 0.9}
 	levels := []string{"normal", "fast", "instant"}
 
