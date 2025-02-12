@@ -21,6 +21,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	stdDevThreshold := 1.0
 	baseFeeIncreateRatio := []float64{1.0, 1.45, 2.35} // metamask is: 1, 1.43, 2.3
 	tipFeePercentiles := []float64{0.1, 0.5, 0.9}
+	lowActivityTipFeeRatio := []float64{0.0, 0.01, 0.05}
 	levels := []string{"normal", "fast", "instant"}
 
 	// firstly we get all percentiles, we will do preprocessing on the returned data and pickup 3 percentiles as the normal, fast, instant levels
@@ -72,12 +73,25 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	sort.Float64s(regulated)
 	results.RegulatedHistoricalRewards = regulated
 
+	// In case there are too few transactions(less than 1 tx per block), there's no need to calculate the tips
+	// just give as small tips as we can since the network is quite well in capacity.
+	// This also checks whether the blocks(baseFees) returned by the historyFee oracle is enough(align with our requested blocks count)
+	chainLowActivity := false
+	if len(regulated) < blocks || len(baseFees) < blocks {
+		chainLowActivity = true
+	}
+
 	for i, level := range levels {
 		percentile := tipFeePercentiles[i]
 		baseFeeRatio := baseFeeIncreateRatio[i]
 
 		idx := int(percentile * float64(len(regulated)))
 		tip := regulated[idx]
+
+		// low probability fall into this branch
+		if chainLowActivity {
+			tip = results.NextBaseFee * lowActivityTipFeeRatio[i]
+		}
 
 		results.EstimatedGasFees[level] = &EstimatedGasFee{
 			MaxPriorityFeePerGas: tip,
