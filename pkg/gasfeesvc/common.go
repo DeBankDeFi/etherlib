@@ -13,5 +13,6 @@ type SuggestedGasFees struct {
 	HistoricalRewards          []float64                   `json:"historicalRewards,omitempty"`
 	RegulatedHistoricalRewards []float64                   `json:"regulatedHistoricalRewards,omitempty"`
 	StdDevThreshold            float64                     `json:"stdDevThreshold,omitempty"`
+	PredictMode                string                      `json:"predictMode,omitempty"`
 	EstimatedGasFees           map[string]*EstimatedGasFee `json:"estimatedGasFees"`
 }

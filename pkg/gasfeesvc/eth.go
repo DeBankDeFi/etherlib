@@ -47,6 +47,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 		GasUsedRatio:     gasUsedRatios,
 		StdDevThreshold:  stdDevThreshold,
 		EstimatedGasFees: make(map[string]*EstimatedGasFee, 3),
+		PredictMode:      "historicalStdDev",
 	}
 	for _, baseFee := range baseFees {
 		if bf, accuracy := new(big.Float).SetInt(baseFee).Float64(); accuracy == 0 {
@@ -79,6 +80,7 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	chainLowActivity := false
 	if len(regulated) < blocks || len(baseFees) < blocks {
 		chainLowActivity = true
+		results.PredictMode = "lowActivity"
 	}
 
 	for i, level := range levels {
