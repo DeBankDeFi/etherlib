@@ -5,7 +5,6 @@ package gasfeesvc
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -75,8 +74,6 @@ func SuggestGasFees(ctx context.Context, lastBlock *rpc.BlockNumber, feeHistory 
 	}
 	sort.Float64s(regulated)
 	results.RegulatedHistoricalRewards = regulated
-
-	fmt.Printf("results.HistoricalRewards: %v, results.RegulatedHistoricalRewards: %v\n", results.HistoricalRewards, results.RegulatedHistoricalRewards)
 
 	// In case there are too few transactions(less than 1 tx per block), there's no need to calculate the tips
 	// just give as small tips as we can since the network is quite well in capacity.
