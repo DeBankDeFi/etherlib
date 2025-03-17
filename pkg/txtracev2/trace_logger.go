@@ -395,7 +395,7 @@ func (ot *OeTracer) checkContractNotExist(addr common.Address) error {
 func (ot *OeTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
-func (ot *OeTracer) CaptureTxStart(gasLimit uint64) {
+func (ot *OeTracer) CaptureTxStart(gasLimit uint64, payer *common.Address) {
 
 }
 
